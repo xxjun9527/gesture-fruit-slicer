@@ -1,0 +1,7 @@
+{
+  "name": "Gesture Fruit Slicer",
+  "description": "A pure frontend fruit slicing game controlled by hand gestures using MediaPipe. Features custom image uploads, bomb traps, and combo systems.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

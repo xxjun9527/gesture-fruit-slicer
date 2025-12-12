@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fruit Splash!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Add Cute Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600;700&family=Varela+Round&display=swap" rel="stylesheet">
+    <style>
+      /* Prevent scrolling on mobile while playing */
+      body {
+        overscroll-behavior: none;
+        touch-action: none;
+        user-select: none;
+        font-family: 'Varela Round', sans-serif;
+      }
+      /* Mirror the video feed for natural interaction */
+      .video-mirror {
+        transform: scaleX(-1);
+      }
+      
+      /* Cute Polka Dot Background */
+      .bg-pattern {
+        background-color: #fffbeb; /* amber-50 */
+        background-image: radial-gradient(#fcd34d 2px, transparent 2px);
+        background-size: 30px 30px;
+      }
+
+      .font-fredoka {
+        font-family: 'Fredoka', sans-serif;
+      }
+
+      /* Bouncy Button Animation */
+      .btn-bouncy:active {
+        transform: translateY(2px);
+        box-shadow: 0 0px 0 0;
+      }
+      
+      /* Blob Animation for UI */
+      @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+      }
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.1/",
+    "react": "https://esm.sh/react@^19.2.1",
+    "@mediapipe/tasks-vision": "https://esm.sh/@mediapipe/tasks-vision@^0.10.22-rc.20250304",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.1/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-amber-50 text-slate-800 overflow-hidden w-full h-screen bg-pattern">
+    <div id="root" class="w-full h-full"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
