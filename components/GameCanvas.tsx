@@ -258,7 +258,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     
     // Spawner
     if (timestamp - lastSpawnTimeRef.current > spawnRateRef.current) {
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 2; i++) {
         spawnEntity(width, height);
       }
       lastSpawnTimeRef.current = timestamp;

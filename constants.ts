@@ -1,6 +1,6 @@
 export const GRAVITY = 0.25;
 export const FRICTION = 0.99;
-export const BOMB_PROBABILITY = 0.15; // 15% chance to spawn a bomb
+export const BOMB_PROBABILITY = 0.1; // 10% chance to spawn a bomb
 export const INITIAL_SPAWN_RATE = 700; // ms
 export const MIN_SPAWN_RATE = 200; // ms
 export const FRUIT_RADIUS = 90; // Doubled size (was 45)
