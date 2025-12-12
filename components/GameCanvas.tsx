@@ -59,6 +59,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   
   // Audio throttling
   const lastSwipeSoundRef = useRef<number>(0);
+  const [isTouchMode, setIsTouchMode] = useState(false);
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // Load assets helper
   const loadAssets = useCallback(async () => {
@@ -100,6 +102,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const isBomb = Math.random() < BOMB_PROBABILITY;
     const x = randomRange(width * 0.1, width * 0.9);
     const y = height + FRUIT_RADIUS; // Start below screen
+    const r = isMobile ? (Math.min(width, height) < 700 ? FRUIT_RADIUS * 0.55 : FRUIT_RADIUS * 0.7) : FRUIT_RADIUS;
     
     // Calculate velocity to throw it towards the center-ish, but with randomness
     const targetX = randomRange(width * 0.2, width * 0.8);
@@ -120,7 +123,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       vy,
       rotation: 0,
       rotationSpeed: randomRange(-0.05, 0.05),
-      radius: FRUIT_RADIUS,
+      radius: r,
       type: isBomb ? 'bomb' : 'fruit',
       isSliced: false,
       lifeTime: 0,
@@ -478,6 +481,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.save();
       ctx.translate(ft.x, ft.y);
       ctx.scale(ft.scale, ft.scale);
+      ctx.scale(-1, 1);
       
       ctx.font = "900 40px 'Fredoka', sans-serif";
       ctx.textAlign = "center";
@@ -563,6 +567,26 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     }
   };
 
+  const processTrailsCollision = (now: number) => {
+    trailsRef.current.forEach((trail) => {
+      if (trail.points.length >= 2) {
+        const prev = trail.points[trail.points.length - 2];
+        const curr = trail.points[trail.points.length - 1];
+        const dist = distance(prev, curr);
+        if (dist > 15 && now - lastSwipeSoundRef.current > 150) {
+          playSwipe();
+          lastSwipeSoundRef.current = now;
+        }
+        fruitsRef.current.forEach(fruit => {
+          if (fruit.type !== 'debris' && !fruit.isSliced && lineIntersectsCircle(prev, curr, fruit)) {
+            const angle = getAngle(prev, curr);
+            handleSlice(fruit, angle);
+          }
+        });
+      }
+    });
+  };
+
   // Main Loop
   const loop = (timestamp: number) => {
     if (gameState !== GameState.PLAYING) return;
@@ -573,7 +597,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (!ctx) return;
 
     update(timestamp, canvas.width, canvas.height);
-    processVision(canvas.width, canvas.height, timestamp);
+    if (isTouchMode) {
+      processTrailsCollision(timestamp);
+    } else {
+      processVision(canvas.width, canvas.height, timestamp);
+    }
     draw(ctx, canvas.width, canvas.height);
 
     requestRef.current = requestAnimationFrame(loop);
@@ -594,16 +622,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           videoRef.current.srcObject = stream;
           videoRef.current.addEventListener('loadeddata', async () => {
              setGameState(GameState.LOADING_VISION);
-             await initializeVision();
-             await loadAssets();
-             // Assets loaded, vision ready
-             gameStartTimeRef.current = performance.now();
-             setGameState(GameState.PLAYING);
-          });
+             try {
+               await initializeVision();
+               await loadAssets();
+               gameStartTimeRef.current = performance.now();
+               setGameState(GameState.PLAYING);
+             } catch (e) {
+               await loadAssets();
+               setIsTouchMode(true);
+               gameStartTimeRef.current = performance.now();
+               setGameState(GameState.PLAYING);
+             }
+           });
         }
       } catch (err) {
-        console.error("Camera access denied:", err);
-        alert("Camera permission is required to play.");
+        await loadAssets();
+        setIsTouchMode(true);
+        gameStartTimeRef.current = performance.now();
+        setGameState(GameState.PLAYING);
       }
     };
 
@@ -620,6 +656,56 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState]);
+
+  useEffect(() => {
+    if (gameState !== GameState.PLAYING) return;
+    const lock = async () => {
+      try {
+        if ((screen as any).orientation && (screen as any).orientation.lock) {
+          await (screen as any).orientation.lock('landscape');
+        }
+      } catch {}
+    };
+    lock();
+  }, [gameState]);
+
+  useEffect(() => {
+    if (!isTouchMode) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      const id = `ptr-${e.pointerId}`;
+      const trail: HandTrail = { id, points: [{ x, y }], color: TRAIL_COLOR_RIGHT };
+      trailsRef.current.set(id, trail);
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      const id = `ptr-${e.pointerId}`;
+      const trail = trailsRef.current.get(id);
+      if (!trail) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      trail.points.push({ x, y });
+      if (trail.points.length > TRAIL_LENGTH) trail.points.shift();
+    };
+    const onPointerUp = (e: PointerEvent) => {
+      const id = `ptr-${e.pointerId}`;
+      trailsRef.current.delete(id);
+    };
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerUp);
+    return () => {
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointercancel', onPointerUp);
+    };
+  }, [isTouchMode]);
 
   // Resize Handler
   useEffect(() => {

@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import GameCanvas from './components/GameCanvas';
 import MainMenu from './components/MainMenu';
 import GameOver from './components/GameOver';
 import { GameState } from './types';
 import { MAX_LIVES } from './constants';
+import { startBGM, stopBGM } from './services/audioService';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -48,6 +49,14 @@ const App: React.FC = () => {
   const handleMenu = () => {
     setGameState(GameState.MENU);
   };
+
+  useEffect(() => {
+    if (gameState === GameState.PLAYING) {
+      startBGM();
+    } else {
+      stopBGM();
+    }
+  }, [gameState]);
 
   return (
     <div className="relative w-full h-full overflow-hidden font-sans">

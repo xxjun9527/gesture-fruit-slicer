@@ -27,7 +27,8 @@
 **步骤**
 1. 安装依赖：`npm install`
 2. 将手势识别模型文件放到 `public/assets/modules/hand_landmarker.task`
-   - 代码已改为加载本地模型：`services/visionService.ts:14`
+   - 访问路径：`/assets/modules/hand_landmarker.task`
+   - 代码位置：`services/visionService.ts:14`
 3. 启动开发服务器：`npm run dev`
 4. 打开浏览器访问：`http://localhost:3000/`
 5. 点击 “PLAY NOW!” 并允许摄像头权限，挥动手指开始切水果。
@@ -63,7 +64,7 @@ vite.config.ts     # Vite 配置（端口与环境注入）
 - 摄像头权限：拒绝权限会导致无法开始游戏，请在浏览器设定中允许摄像头。
 - Node 版本警告：若看到 `@vitejs/plugin-react` 的 engine 提示，建议升级至 Node `20+`。
 - 模型加载 404：请确认模型已放置在 `public/assets/modules/hand_landmarker.task`，并且访问路径与 `services/visionService.ts:14` 保持一致。
-- 样式文件：`index.html` 引用了 `/index.css`，仓库默认未提供该文件；样式主要依赖 Tailwind CDN，不影响游戏功能。
+- 样式文件：`index.html` 引用了 `/index.css`，该文件现在位于 `public/index.css` 并在构建后输出为 `dist/index.css`。
 
 ## 许可
 本项目仅用于学习与演示。内置水果 SVG 为本地数据 URI，上传图片请确保拥有合法使用权。
