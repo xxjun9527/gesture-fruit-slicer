@@ -2,7 +2,8 @@
 let audioContext: AudioContext | null = null;
 let noiseBuffer: AudioBuffer | null = null;
 let bgmGain: GainNode | null = null;
-let bgmInterval: number | null = null;
+let bgmSource: MediaElementAudioSourceNode | null = null;
+let bgmAudio: HTMLAudioElement | null = null;
 let bgmPlaying = false;
 
 export const initAudio = () => {
@@ -129,96 +130,44 @@ export const playExplosion = () => {
     source.stop(audioContext.currentTime + 1);
 };
 
-const ensureBgmChain = () => {
-  if (!audioContext) initAudio();
-  if (!audioContext) return null;
-  if (!bgmGain) {
-    bgmGain = audioContext.createGain();
-    bgmGain.gain.value = 0.12;
-    bgmGain.connect(audioContext.destination);
-  }
-  return bgmGain;
-};
-
-const playTone = (freq: number, duration: number, type: OscillatorType, gainLevel: number) => {
-  if (!audioContext) initAudio();
-  if (!audioContext) return;
-  const master = ensureBgmChain();
-  if (!master) return;
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, audioContext.currentTime);
-  gain.gain.setValueAtTime(gainLevel, audioContext.currentTime);
-  osc.connect(gain);
-  gain.connect(master);
-  const now = audioContext.currentTime;
-  osc.start(now);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-  osc.stop(now + duration + 0.01);
-};
-
-const playHat = () => {
-  if (!audioContext) initAudio();
-  if (!audioContext) return;
-  const master = ensureBgmChain();
-  if (!master) return;
-  if (!noiseBuffer) noiseBuffer = createNoiseBuffer();
-  if (!noiseBuffer) return;
-  const src = audioContext.createBufferSource();
-  src.buffer = noiseBuffer;
-  const filter = audioContext.createBiquadFilter();
-  const gain = audioContext.createGain();
-  filter.type = 'highpass';
-  filter.frequency.value = 6000;
-  gain.gain.setValueAtTime(0.15, audioContext.currentTime);
-  src.connect(filter);
-  filter.connect(gain);
-  gain.connect(master);
-  const now = audioContext.currentTime;
-  src.start(now);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
-  src.stop(now + 0.06);
-};
-
 export const startBGM = () => {
   if (bgmPlaying) return;
   if (!audioContext) initAudio();
   if (!audioContext) return;
-  ensureBgmChain();
-  let step = 0;
-  const bass = [65.41, 49.00, 55.00, 49.00];
-  const melody = [261.63, 329.63, 392.00, 523.25, 587.33, 659.25, 523.25, 392.00];
-  bgmInterval = window.setInterval(() => {
-    const b = bass[step % bass.length];
-    const m = melody[step % melody.length];
-    playTone(b, 0.28, 'square', 0.22);
-    playTone(m, 0.22, 'sawtooth', 0.25);
-    playHat();
-    if (step % 4 === 0) {
-      playTone(261.63, 0.25, 'sawtooth', 0.18);
-      playTone(329.63, 0.25, 'sawtooth', 0.18);
-      playTone(392.00, 0.25, 'sawtooth', 0.18);
-    }
-    step++;
-  }, 360);
+  if (!bgmGain) {
+    bgmGain = audioContext.createGain();
+    bgmGain.gain.value = 0.9;
+    bgmGain.connect(audioContext.destination);
+  }
+  if (!bgmAudio) {
+    bgmAudio = new Audio('/assets/music/bgm.MP3');
+    bgmAudio.loop = true;
+    bgmAudio.preload = 'auto';
+    bgmAudio.crossOrigin = 'anonymous';
+    bgmAudio.volume = 1.0;
+  }
+  if (!bgmSource) {
+    bgmSource = audioContext.createMediaElementSource(bgmAudio);
+    bgmSource.connect(bgmGain);
+  }
+  bgmAudio.currentTime = 0;
+  bgmAudio.play().catch(() => {});
   bgmPlaying = true;
 };
 
 export const stopBGM = () => {
   if (!audioContext) return;
-  if (bgmInterval) {
-    clearInterval(bgmInterval);
-    bgmInterval = null;
+  if (bgmAudio) {
+    try { bgmAudio.pause(); } catch {}
+  }
+  if (bgmSource) {
+    try { bgmSource.disconnect(); } catch {}
+    bgmSource = null;
   }
   if (bgmGain) {
-    bgmGain.gain.cancelScheduledValues(audioContext.currentTime);
-    bgmGain.gain.setValueAtTime(bgmGain.gain.value, audioContext.currentTime);
-    bgmGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.2);
-    setTimeout(() => {
-      bgmGain && bgmGain.disconnect();
-      bgmGain = null;
-    }, 250);
+    try { bgmGain.disconnect(); } catch {}
+    bgmGain = null;
   }
+  bgmAudio = null;
   bgmPlaying = false;
 };

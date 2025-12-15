@@ -15,11 +15,11 @@ const GameOver: React.FC<GameOverProps> = ({ score, onRestart, onMenu }) => {
           🥺
         </div>
 
-        <h2 className="text-5xl font-fredoka font-bold text-slate-700 mt-6 mb-2">Oops!</h2>
-        <p className="text-xl text-slate-400 font-medium mb-6">You dropped the fruit!</p>
+        <h2 className="text-5xl font-fredoka font-bold text-slate-700 mt-6 mb-2">糟糕！</h2>
+        <p className="text-xl text-slate-400 font-medium mb-6">水果掉了！</p>
         
         <div className="bg-yellow-50 rounded-2xl p-4 mb-8 border-2 border-yellow-200 border-dashed">
-          <p className="text-yellow-600 font-bold uppercase text-xs mb-1">Total Score</p>
+          <p className="text-yellow-600 font-bold uppercase text-xs mb-1">总得分</p>
           <p className="text-4xl font-black text-yellow-500">{score}</p>
         </div>
         
@@ -28,13 +28,13 @@ const GameOver: React.FC<GameOverProps> = ({ score, onRestart, onMenu }) => {
             onClick={onRestart}
             className="w-full bg-pink-500 hover:bg-pink-600 text-white font-fredoka font-bold py-3 px-6 rounded-full text-xl shadow-[0_4px_0_#be185d] active:shadow-none active:translate-y-1 transition-all"
           >
-            Try Again 🔄
+            再来一次 🔄
           </button>
           <button
             onClick={onMenu}
             className="w-full bg-white hover:bg-slate-50 text-slate-500 font-bold py-3 px-6 rounded-full border-2 border-slate-200 transition-colors"
           >
-            Back to Menu
+            返回菜单
           </button>
         </div>
       </div>

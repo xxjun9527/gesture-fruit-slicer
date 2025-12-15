@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { GameState, Entity, Particle, HandTrail, FruitConfig, Splatter, FloatingText } from '../types';
-import { initializeVision, getLandmarker } from '../services/visionService';
+import { initializeVision, getLandmarker, VisionQuality } from '../services/visionService';
 import { playSwipe, playSlice, playExplosion } from '../services/audioService';
 import { 
   GRAVITY, FRICTION, INITIAL_SPAWN_RATE, MIN_SPAWN_RATE, FRUIT_RADIUS, MAX_LIVES, TRAIL_LENGTH, 
@@ -13,6 +13,8 @@ import { randomRange, lineIntersectsCircle, getAngle, distance } from '../utils/
 interface GameCanvasProps {
   gameState: GameState;
   setGameState: (state: GameState) => void;
+  preferVision: boolean;
+  visionQuality?: VisionQuality;
   customImages: string[];
   onScoreUpdate: (score: number) => void;
   onLivesUpdate: (lives: number) => void;
@@ -22,6 +24,8 @@ interface GameCanvasProps {
 const GameCanvas: React.FC<GameCanvasProps> = ({
   gameState,
   setGameState,
+  preferVision,
+  visionQuality = 'lite',
   customImages,
   onScoreUpdate,
   onLivesUpdate,
@@ -61,6 +65,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const lastSwipeSoundRef = useRef<number>(0);
   const [isTouchMode, setIsTouchMode] = useState(false);
   const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const lastVisionDetectRef = useRef<number>(0);
+  const visionIntervalRef = useRef<number>(33);
+  const avgDetectTimeRef = useRef<number>(0);
+  const speedMultiplierRef = useRef<number>(1);
 
   // Load assets helper
   const loadAssets = useCallback(async () => {
@@ -269,6 +277,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       spawnRateRef.current = Math.max(MIN_SPAWN_RATE, INITIAL_SPAWN_RATE - (elapsed / 100));
     }
 
+    // Difficulty: every 15s speed +10%, up to +100%
+    {
+      const elapsed = timestamp - gameStartTimeRef.current;
+      const steps = Math.min(Math.floor(elapsed / 15000), 10);
+      speedMultiplierRef.current = 1 + steps * 0.1;
+    }
+
     // Shake Decay
     if (shakeIntensityRef.current > 0.5) {
       shakeIntensityRef.current *= SHAKE_DECAY;
@@ -279,9 +294,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     // Update Entities
     for (let i = fruitsRef.current.length - 1; i >= 0; i--) {
       const f = fruitsRef.current[i];
-      f.x += f.vx;
-      f.y += f.vy;
-      f.vy += GRAVITY;
+      const m = speedMultiplierRef.current;
+      f.x += f.vx * m;
+      f.y += f.vy * m;
+      f.vy += GRAVITY * m;
       f.rotation += f.rotationSpeed;
 
       if (f.y > height + 200) {
@@ -502,11 +518,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   const processVision = (width: number, height: number, now: number) => {
+    const interval = (visionQuality === 'standard') ? 16 : 33;
+    if (now - lastVisionDetectRef.current < interval) return;
     const landmarker = getLandmarker();
     if (!landmarker || !videoRef.current || videoRef.current.readyState < 2) return;
 
     // Detect
+    const t0 = performance.now();
     const results = landmarker.detectForVideo(videoRef.current, now);
+    const dt = performance.now() - t0;
+    lastVisionDetectRef.current = now;
+    avgDetectTimeRef.current = avgDetectTimeRef.current === 0 ? dt : (avgDetectTimeRef.current * 0.7 + dt * 0.3);
+    if (visionQuality === 'standard') {
+      visionIntervalRef.current = 33;
+    } else {
+      if (avgDetectTimeRef.current > 20) {
+        visionIntervalRef.current = 66;
+      } else if (avgDetectTimeRef.current > 10) {
+        visionIntervalRef.current = 50;
+      } else {
+        visionIntervalRef.current = 33;
+      }
+    }
 
     if (results.landmarks) {
       results.landmarks.forEach((landmarks, index) => {
@@ -542,16 +575,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           
           // Sound: Check speed
           const dist = distance(prev, curr);
-          if (dist > 15 && now - lastSwipeSoundRef.current > 150) {
+          const swipeGap = isMobile ? 250 : 150;
+          if (dist > 15 && now - lastSwipeSoundRef.current > swipeGap) {
              playSwipe();
              lastSwipeSoundRef.current = now;
           }
           
+          const minX = Math.min(prev.x, curr.x) - FRUIT_RADIUS * 1.2;
+          const maxX = Math.max(prev.x, curr.x) + FRUIT_RADIUS * 1.2;
+          const minY = Math.min(prev.y, curr.y) - FRUIT_RADIUS * 1.2;
+          const maxY = Math.max(prev.y, curr.y) + FRUIT_RADIUS * 1.2;
           fruitsRef.current.forEach(fruit => {
-             // Collision check only for intact fruits or bombs
-             if (fruit.type !== 'debris' && !fruit.isSliced && lineIntersectsCircle(prev, curr, fruit)) {
-               const angle = getAngle(prev, curr);
-               handleSlice(fruit, angle);
+              // Collision check only for intact fruits or bombs
+             if (fruit.type !== 'debris' && !fruit.isSliced) {
+               if (fruit.x < minX || fruit.x > maxX || fruit.y < minY || fruit.y > maxY) return;
+               if (lineIntersectsCircle(prev, curr, fruit)) {
+                 const angle = getAngle(prev, curr);
+                 handleSlice(fruit, angle);
+               }
              }
           });
         }
@@ -577,6 +618,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           playSwipe();
           lastSwipeSoundRef.current = now;
         }
+        const minX = Math.min(prev.x, curr.x) - FRUIT_RADIUS * 1.2;
+        const maxX = Math.max(prev.x, curr.x) + FRUIT_RADIUS * 1.2;
+        const minY = Math.min(prev.y, curr.y) - FRUIT_RADIUS * 1.2;
+        const maxY = Math.max(prev.y, curr.y) + FRUIT_RADIUS * 1.2;
         fruitsRef.current.forEach(fruit => {
           if (fruit.type !== 'debris' && !fruit.isSliced && lineIntersectsCircle(prev, curr, fruit)) {
             const angle = getAngle(prev, curr);
@@ -613,20 +658,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
-            width: 1280, 
-            height: 720,
-            frameRate: { ideal: 60 }
+            width: (visionQuality === 'standard' && !isMobile) ? 1280 : 640, 
+            height: (visionQuality === 'standard' && !isMobile) ? 720 : 360,
+            frameRate: { ideal: (visionQuality === 'standard' && !isMobile) ? 60 : 30 }
           } 
         });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.addEventListener('loadeddata', async () => {
              setGameState(GameState.LOADING_VISION);
-             try {
-               await initializeVision();
-               await loadAssets();
-               gameStartTimeRef.current = performance.now();
-               setGameState(GameState.PLAYING);
+              try {
+                await Promise.race([
+                  initializeVision(visionQuality as VisionQuality),
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('vision-timeout')), 3000))
+                ]);
+                await loadAssets();
+                gameStartTimeRef.current = performance.now();
+                setGameState(GameState.PLAYING);
              } catch (e) {
                await loadAssets();
                setIsTouchMode(true);
@@ -645,7 +693,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Initial setup on mount if we transition to loading
     if (gameState === GameState.LOADING_VISION && !videoRef.current?.srcObject) {
-       setupCamera();
+       if (preferVision) {
+         setupCamera();
+       } else {
+         (async () => {
+           await loadAssets();
+           setIsTouchMode(true);
+           gameStartTimeRef.current = performance.now();
+           setGameState(GameState.PLAYING);
+         })();
+       }
     } else if (gameState === GameState.PLAYING) {
         // Start loop
         requestRef.current = requestAnimationFrame(loop);
@@ -766,8 +823,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
          <div className="absolute inset-0 flex items-center justify-center z-50 bg-amber-50 bg-opacity-95">
             <div className="text-center">
               <div className="animate-bounce text-6xl mb-4">🖐️</div>
-              <h2 className="text-3xl text-slate-700 font-fredoka font-bold mb-2">Getting Ready...</h2>
-              <p className="text-slate-500">Warming up the kitchen!</p>
+              <h2 className="text-3xl text-slate-700 font-fredoka font-bold mb-2">准备中...</h2>
+              <p className="text-slate-500">正在热身，请稍候</p>
             </div>
          </div>
       )}

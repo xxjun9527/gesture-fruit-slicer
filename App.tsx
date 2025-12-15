@@ -5,6 +5,8 @@ import GameOver from './components/GameOver';
 import { GameState } from './types';
 import { MAX_LIVES } from './constants';
 import { startBGM, stopBGM } from './services/audioService';
+import type { VisionQuality } from './services/visionService';
+import { prefetchVisionAssets } from './services/prefetchService';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -12,6 +14,9 @@ const App: React.FC = () => {
   const [lives, setLives] = useState(MAX_LIVES);
   const [customImages, setCustomImages] = useState<string[]>([]);
   const [finalScore, setFinalScore] = useState(0);
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const [preferVision, setPreferVision] = useState<boolean>(!isMobile);
+  const [visionQuality, setVisionQuality] = useState<VisionQuality>(isMobile ? 'lite' : 'standard');
 
   const handleStartGame = () => {
     // If we haven't loaded vision yet, it goes MENU -> LOADING -> PLAYING inside GameCanvas
@@ -58,13 +63,19 @@ const App: React.FC = () => {
     }
   }, [gameState]);
 
+  useEffect(() => {
+    if (gameState === GameState.MENU) {
+      prefetchVisionAssets();
+    }
+  }, [gameState]);
+
   return (
     <div className="relative w-full h-full overflow-hidden font-sans">
       {/* HUD (Heads Up Display) - Only visible when playing */}
       {gameState === GameState.PLAYING && (
         <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-30 pointer-events-none">
           <div className="flex flex-col gap-1">
-            <span className="text-yellow-400 font-bold text-3xl drop-shadow-md">Score: {score}</span>
+            <span className="text-yellow-400 font-bold text-3xl drop-shadow-md">得分：{score}</span>
           </div>
           <div className="flex gap-2">
             {Array.from({ length: MAX_LIVES }).map((_, i) => (
@@ -83,6 +94,8 @@ const App: React.FC = () => {
       <GameCanvas 
         gameState={gameState} 
         setGameState={setGameState}
+        preferVision={preferVision}
+        visionQuality={visionQuality}
         customImages={customImages}
         onScoreUpdate={setScore}
         onLivesUpdate={setLives}
@@ -95,6 +108,10 @@ const App: React.FC = () => {
           onStart={handleStartGame} 
           onUpload={handleUpload} 
           customImageCount={customImages.length} 
+          preferVision={preferVision}
+          onToggleVision={() => setPreferVision(v => !v)}
+          visionQuality={visionQuality}
+          onToggleVisionQuality={() => setVisionQuality(q => q === 'lite' ? 'standard' : 'lite')}
         />
       )}
 

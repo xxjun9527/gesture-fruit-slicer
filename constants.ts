@@ -4,7 +4,7 @@ export const BOMB_PROBABILITY = 0; // 10% chance to spawn a bomb
 export const INITIAL_SPAWN_RATE = 700; // ms
 export const MIN_SPAWN_RATE = 200; // ms
 export const FRUIT_RADIUS = 90; // Doubled size (was 45)
-export const MAX_LIVES = 10; // Increased lives (was 3)
+export const MAX_LIVES = 50; // Increased lives (was 3)
 export const TRAIL_LENGTH = 10;
 export const CUT_THRESHOLD = 30; // Pixel distance to register a "move" for cutting
 
