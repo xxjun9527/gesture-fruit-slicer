@@ -4,11 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fruit Splash!</title>
-    <link rel="preload" href="/assets/wasm/vision_wasm_internal.js" as="script" />
-    <link rel="preload" href="/assets/wasm/vision_wasm_internal.wasm" as="fetch" type="application/wasm" crossorigin="anonymous" />
-    <link rel="preload" href="/assets/wasm/vision_wasm_nosimd_internal.js" as="script" />
-    <link rel="preload" href="/assets/wasm/vision_wasm_nosimd_internal.wasm" as="fetch" type="application/wasm" crossorigin="anonymous" />
-    <link rel="preload" href="/assets/modules/hand_landmarker.task" as="fetch" crossorigin="anonymous" />
+    <!-- remove script preloads to avoid credentials mismatch warnings -->
+    <!-- preload removed; programmatic prefetch with progress handles loading -->
   </head>
   <body class="bg-amber-50 text-slate-800 overflow-hidden w-full h-screen bg-pattern">
     <div id="root" class="w-full h-full"></div>

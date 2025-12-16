@@ -1,21 +1,29 @@
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 
 let handLandmarker: HandLandmarker | null = null;
+let visionResolver: any = null;
 const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const BASE = import.meta.env.BASE_URL;
 
 export type VisionQuality = 'lite' | 'standard';
+
+export const warmVisionFileset = async () => {
+  if (visionResolver) return visionResolver;
+  visionResolver = await FilesetResolver.forVisionTasks(
+    BASE + "assets/wasm/"
+  );
+  return visionResolver;
+};
 
 export const initializeVision = async (quality: VisionQuality) => {
   if (handLandmarker) return handLandmarker;
 
-  const vision = await FilesetResolver.forVisionTasks(
-    "/assets/wasm"
-  );
+  const vision = visionResolver ?? await FilesetResolver.forVisionTasks(BASE + "assets/wasm/");
 
   try {
     handLandmarker = await HandLandmarker.createFromOptions(vision, {
       baseOptions: {
-        modelAssetPath: quality === 'lite' ? `/assets/modules/hand_landmarker_lite.task` : `/assets/modules/hand_landmarker.task`,
+        modelAssetPath: quality === 'lite' ? BASE + `assets/modules/hand_landmarker_lite.task` : BASE + `assets/modules/hand_landmarker.task`,
         delegate: "GPU",
       },
       runningMode: "VIDEO",
@@ -27,7 +35,7 @@ export const initializeVision = async (quality: VisionQuality) => {
   } catch (e) {
     handLandmarker = await HandLandmarker.createFromOptions(vision, {
       baseOptions: {
-        modelAssetPath: `/assets/modules/hand_landmarker.task`,
+        modelAssetPath: BASE + `assets/modules/hand_landmarker.task`,
         delegate: "CPU",
       },
       runningMode: "VIDEO",

@@ -5,6 +5,7 @@ let bgmGain: GainNode | null = null;
 let bgmSource: MediaElementAudioSourceNode | null = null;
 let bgmAudio: HTMLAudioElement | null = null;
 let bgmPlaying = false;
+const BASE = import.meta.env.BASE_URL;
 
 export const initAudio = () => {
   if (!audioContext) {
@@ -140,7 +141,7 @@ export const startBGM = () => {
     bgmGain.connect(audioContext.destination);
   }
   if (!bgmAudio) {
-    bgmAudio = new Audio('/assets/music/bgm.MP3');
+    bgmAudio = new Audio(BASE + 'assets/music/bgm.MP3');
     bgmAudio.loop = true;
     bgmAudio.preload = 'auto';
     bgmAudio.crossOrigin = 'anonymous';

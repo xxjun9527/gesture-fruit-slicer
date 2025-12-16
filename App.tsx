@@ -6,7 +6,8 @@ import { GameState } from './types';
 import { MAX_LIVES } from './constants';
 import { startBGM, stopBGM } from './services/audioService';
 import type { VisionQuality } from './services/visionService';
-import { prefetchVisionAssets } from './services/prefetchService';
+import { warmVisionFileset } from './services/visionService';
+import { prefetchVisionAssetsWithProgress } from './services/prefetchService';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -15,8 +16,11 @@ const App: React.FC = () => {
   const [customImages, setCustomImages] = useState<string[]>([]);
   const [finalScore, setFinalScore] = useState(0);
   const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const [preferVision, setPreferVision] = useState<boolean>(!isMobile);
+  const [preferVision, setPreferVision] = useState<boolean>(true);
   const [visionQuality, setVisionQuality] = useState<VisionQuality>(isMobile ? 'lite' : 'standard');
+  const [visionProgress, setVisionProgress] = useState<number>(0);
+  const [visionReady, setVisionReady] = useState<boolean>(false);
+  const [wasmWarmed, setWasmWarmed] = useState<boolean>(false);
 
   const handleStartGame = () => {
     // If we haven't loaded vision yet, it goes MENU -> LOADING -> PLAYING inside GameCanvas
@@ -62,10 +66,23 @@ const App: React.FC = () => {
       stopBGM();
     }
   }, [gameState]);
+  
+  useEffect(() => {
+    if (gameState === GameState.MENU && wasmWarmed && visionProgress >= 100) {
+      setVisionReady(true);
+    }
+  }, [gameState, wasmWarmed, visionProgress]);
 
   useEffect(() => {
     if (gameState === GameState.MENU) {
-      prefetchVisionAssets();
+      setVisionProgress(0);
+      setVisionReady(false);
+      setWasmWarmed(false);
+      warmVisionFileset().then(() => setWasmWarmed(true)).catch(() => setWasmWarmed(false));
+      prefetchVisionAssetsWithProgress((p) => {
+        setVisionProgress(p);
+        if (p >= 100 && wasmWarmed) setVisionReady(true);
+      });
     }
   }, [gameState]);
 
@@ -112,6 +129,8 @@ const App: React.FC = () => {
           onToggleVision={() => setPreferVision(v => !v)}
           visionQuality={visionQuality}
           onToggleVisionQuality={() => setVisionQuality(q => q === 'lite' ? 'standard' : 'lite')}
+          visionProgress={visionProgress}
+          visionReady={visionReady}
         />
       )}
 

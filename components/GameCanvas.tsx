@@ -670,7 +670,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               try {
                 await Promise.race([
                   initializeVision(visionQuality as VisionQuality),
-                  new Promise((_, reject) => setTimeout(() => reject(new Error('vision-timeout')), 3000))
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('vision-timeout')), 30000))
                 ]);
                 await loadAssets();
                 gameStartTimeRef.current = performance.now();

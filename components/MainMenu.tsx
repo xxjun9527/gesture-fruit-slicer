@@ -9,9 +9,11 @@ interface MainMenuProps {
   onToggleVision: () => void;
   visionQuality: 'lite' | 'standard';
   onToggleVisionQuality: () => void;
+  visionProgress: number;
+  visionReady: boolean;
 }
 
-const MainMenu: React.FC<MainMenuProps> = ({ onStart, onUpload, customImageCount, preferVision, onToggleVision, visionQuality, onToggleVisionQuality }) => {
+const MainMenu: React.FC<MainMenuProps> = ({ onStart, onUpload, customImageCount, preferVision, onToggleVision, visionQuality, onToggleVisionQuality, visionProgress, visionReady }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleStart = () => {
@@ -29,7 +31,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ onStart, onUpload, customImageCount
     <div className="absolute inset-0 flex flex-col items-center justify-center z-40 bg-yellow-100 bg-opacity-80 backdrop-blur-sm">
       <div className="relative z-10 text-center animate-float">
         <h1 className="text-7xl font-fredoka font-bold text-transparent bg-clip-text bg-gradient-to-br from-pink-500 to-orange-400 mb-2 drop-shadow-md">
-          切水果不止于水果
+          欢乐切切切
         </h1>
         <p className="text-slate-500 font-bold text-xl mb-12">
           🍉用手指来切水果🍉
@@ -61,11 +63,34 @@ const MainMenu: React.FC<MainMenuProps> = ({ onStart, onUpload, customImageCount
             </button>
           </div>
 
+          {preferVision && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600 font-semibold">手势识别资源</span>
+                <span className="text-xs text-slate-500">{visionProgress}%</span>
+              </div>
+              <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                <div
+                  className="h-full bg-green-400 transition-all"
+                  style={{ width: `${visionProgress}%` }}
+                />
+              </div>
+              {!visionReady && (
+                <span className="block mt-1 text-xs text-slate-500">正在加载资源与模型，请稍候</span>
+              )}
+            </div>
+          )}
+
           <button
             onClick={handleStart}
-            className="w-full bg-green-400 hover:bg-green-500 text-white font-fredoka font-bold py-4 px-8 rounded-full text-2xl transition-all transform active:scale-95 shadow-[0_6px_0_#15803d] active:shadow-none mb-6 border-2 border-green-500"
+            disabled={preferVision && !visionReady}
+            className={`w-full font-fredoka font-bold py-4 px-8 rounded-full text-2xl transition-all transform mb-6 border-2 ${
+              preferVision && !visionReady
+                ? 'bg-slate-300 text-slate-500 border-slate-300 cursor-not-allowed opacity-60'
+                : 'bg-green-400 hover:bg-green-500 text-white border-green-500 active:scale-95 shadow-[0_6px_0_#15803d] active:shadow-none'
+            }`}
           >
-            开始游戏 ▶
+            {preferVision && !visionReady ? '加载中…' : '开始游戏 ▶'}
           </button>
 
           <div className="pt-4 border-t-2 border-slate-100 border-dashed">
