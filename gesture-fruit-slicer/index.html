@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fruit Splash!</title>
+    <!-- remove script preloads to avoid credentials mismatch warnings -->
+    <!-- preload removed; programmatic prefetch with progress handles loading -->
+    <script type="module" crossorigin src="/assets/index-DixKtIEg.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DFSH9oAe.css">
+  </head>
+  <body class="bg-amber-50 text-slate-800 overflow-hidden w-full h-screen bg-pattern">
+    <div id="root" class="w-full h-full"></div>
+  <script>
+    (function(){
+      var original=WebAssembly.instantiateStreaming;
+      if(typeof original==='function'){
+        WebAssembly.instantiateStreaming=async function(source,imports){
+          try{
+            var res=source instanceof Response?source:await source;
+            var ct=(res.headers&&res.headers.get&&res.headers.get('Content-Type'))||'';
+            if(ct.indexOf('application/wasm')!==-1){
+              return original(res,imports);
+            }
+            var ab=await res.arrayBuffer();
+            return WebAssembly.instantiate(ab,imports);
+          }catch(_){
+            var res2=source instanceof Response?source:await source;
+            var ab2=await res2.arrayBuffer();
+            return WebAssembly.instantiate(ab2,imports);
+          }
+        };
+      }
+    })();
+  </script>
+</body>
+</html>

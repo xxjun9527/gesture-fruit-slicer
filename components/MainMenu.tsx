@@ -31,10 +31,10 @@ const MainMenu: React.FC<MainMenuProps> = ({ onStart, onUpload, customImageCount
     <div className="absolute inset-0 flex flex-col items-center justify-center z-40 bg-yellow-100 bg-opacity-80 backdrop-blur-sm">
       <div className="relative z-10 text-center animate-float">
         <h1 className="text-7xl font-fredoka font-bold text-transparent bg-clip-text bg-gradient-to-br from-pink-500 to-orange-400 mb-2 drop-shadow-md">
-          欢乐切切切
+          万物皆可切
         </h1>
         <p className="text-slate-500 font-bold text-xl mb-12">
-          🍉用手指来切水果🍉
+          用手指 —— 想切什么切什么
         </p>
       
         <div className="bg-white p-8 rounded-[2rem] shadow-[0_10px_0_rgba(0,0,0,0.1)] max-w-sm w-full mx-auto border-4 border-slate-100">
